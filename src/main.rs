@@ -1,3 +1,5 @@
+mod args;
+
 fn main() {
-    println!("Hello, world!");
+    let args = args::get_arguments();
 }
