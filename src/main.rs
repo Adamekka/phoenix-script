@@ -6,7 +6,7 @@ fn main() {
 
     match args.subcommand() {
         Some(("build", _)) => {
-            build::build();
+            build::build(args);
         }
 
         _ => {
