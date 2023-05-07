@@ -135,6 +135,51 @@ impl Lexer {
     }
 }
 
+/// Parser for the language
+#[derive(Debug)]
+struct Parser {
+    lexer: Lexer,
+    position: usize,
+    tokens: Vec<SyntaxToken>,
+}
+
+impl Parser {
+    fn parse(&mut self) {
+        loop {
+            self.lexer.next_token();
+
+            // Whitespace or bad token
+            if self.lexer.syntax_token.token_type == SyntaxTokenType::WhiteSpace
+                || self.lexer.syntax_token.token_type == SyntaxTokenType::BadToken
+            {
+                continue;
+            // End of file
+            } else if self.lexer.syntax_token.token_type == SyntaxTokenType::EndOfFile {
+                break;
+            } else {
+                self.tokens.push(self.lexer.syntax_token.clone());
+            }
+        }
+    }
+
+    fn peek(&self, offset: usize) -> SyntaxToken {
+        let index: usize = self.position + offset;
+
+        if index >= self.tokens.len() {
+            return SyntaxToken {
+                text: "".to_string(),
+                token_type: SyntaxTokenType::EndOfFile,
+            };
+        }
+
+        self.tokens[index].clone()
+    }
+
+    fn current(&self) -> SyntaxToken {
+        self.peek(0)
+    }
+}
+
 pub fn build(args: clap::ArgMatches) {
     // Get file to build
     let file: &String;
@@ -151,22 +196,19 @@ pub fn build(args: clap::ArgMatches) {
     // Get file contents
     let file_contents: String = std::fs::read_to_string(file).expect("Failed to read file");
 
-    let mut lexer: Lexer = Lexer {
-        text: file_contents,
+    let mut parser: Parser = Parser {
         position: 0,
-        syntax_token: SyntaxToken {
-            text: "".to_string(),
-            token_type: SyntaxTokenType::BadToken,
+        tokens: Vec::new(),
+        lexer: Lexer {
+            text: file_contents,
+            position: 0,
+            syntax_token: SyntaxToken {
+                text: "".to_string(),
+                token_type: SyntaxTokenType::BadToken,
+            },
         },
     };
 
-    loop {
-        lexer.next_token();
-
-        if lexer.syntax_token.token_type == SyntaxTokenType::EndOfFile {
-            break;
-        } else {
-            dbg!(&lexer);
-        }
-    }
+    parser.parse();
+    dbg!(&parser);
 }
