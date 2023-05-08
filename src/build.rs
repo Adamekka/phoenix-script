@@ -180,6 +180,79 @@ impl Parser {
     }
 }
 
+#[derive(Clone, Debug)]
+struct ExpressionSyntax {
+    position: usize,
+    left: ExpressionSyntaxEnum,
+    operator_token: OperatorToken,
+    right: ExpressionSyntaxEnum,
+}
+
+#[derive(Clone, Debug)]
+enum ExpressionSyntaxEnum {
+    ExpressionSyntax(Box<ExpressionSyntax>),
+    Number(isize),
+}
+
+#[derive(Clone, Debug)]
+enum OperatorToken {
+    Plus,
+    Minus,
+    Star,
+    Slash,
+}
+
+impl ExpressionSyntax {
+    fn parse(&mut self, parser: &mut Parser) {
+        // Find open parenthesis
+        self.position = parser
+            .tokens
+            .iter()
+            .position(|x: &SyntaxToken| x.text == "(")
+            .expect("Failed to find open parenthesis, expected '('");
+
+        // Get left expression
+        if let Some(value) = parser
+            .tokens
+            .iter()
+            .filter_map(|token: &SyntaxToken| match &token.token_type {
+                SyntaxTokenType::Number(value) => Some(value),
+                _ => None,
+            })
+            .nth(self.position)
+        {
+            self.position += 2;
+            self.left =
+                ExpressionSyntaxEnum::Number(value.clone().expect("Failed to parse number"));
+        }
+
+        // Get operator
+        self.operator_token = match parser.tokens[self.position].text.as_str() {
+            "+" => OperatorToken::Plus,
+            "-" => OperatorToken::Minus,
+            "*" => OperatorToken::Star,
+            "/" => OperatorToken::Slash,
+            _ => panic!(
+                "Invalid operator, expected '+', '-', '*', or '/', found '{}'",
+                parser.tokens[self.position].text
+            ),
+        };
+
+        self.position += 1;
+
+        // Get right expression
+        self.right = match &parser.tokens[self.position].token_type {
+            SyntaxTokenType::Number(value) => {
+                ExpressionSyntaxEnum::Number(value.clone().expect("Failed to parse number"))
+            }
+            _ => panic!(
+                "Invalid number, expected number after operator, found '{}'",
+                parser.tokens[self.position].text
+            ),
+        }
+    }
+}
+
 pub fn build(args: clap::ArgMatches) {
     // Get file to build
     let file: &String;
@@ -209,6 +282,15 @@ pub fn build(args: clap::ArgMatches) {
         },
     };
 
+    let mut expression: ExpressionSyntax = ExpressionSyntax {
+        position: 0,
+        left: ExpressionSyntaxEnum::Number(0),
+        operator_token: OperatorToken::Plus,
+        right: ExpressionSyntaxEnum::Number(0),
+    };
+
     parser.parse();
     dbg!(&parser);
+    expression.parse(&mut parser);
+    dbg!(&expression);
 }
